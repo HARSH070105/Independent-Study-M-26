@@ -1,0 +1,13 @@
+DENSE
+  group@0 rows=1 dense=1 cycles=24 effMACs=384 errs=0
+  group@1 rows=1 dense=1 cycles=48 effMACs=768 errs=0
+TRIP
+  group@0 rows=4 dense=0 cycles=144 effMACs=2113 errs=0
+  group@0 rows=4 dense=0 cycles=197 effMACs=2755 errs=0
+  group@0 rows=4 dense=0 cycles=210 effMACs=2874 errs=0
+  group@0 rows=4 dense=0 cycles=216 effMACs=2885 errs=0
+  group@4 rows=4 dense=0 cycles=222 effMACs=2892 errs=0
+  group@0 rows=4 dense=0 cycles=222 effMACs=2892 errs=0
+  group@0 rows=3 dense=0 cycles=226 effMACs=2925 errs=0
+TB_TRIP PASS
+/home/claude/trapezoid_rtl/tb_trip.sv:62: $finish called at 2850000 (1ps)
