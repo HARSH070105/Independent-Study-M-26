@@ -29,10 +29,47 @@ Simplified (affects absolute cycle counts, not trends):
 - Scheduler uses blocking variables (simulation-only, not synthesizable as written).
 
 ## Running
+
+### 1. Prerequisites
+Ensure Icarus Verilog (`iverilog` and `vvp`), `make`, and Python 3 (with `matplotlib` for plotting) are installed:
+```bash
+# Ubuntu / Debian
+sudo apt update && sudo apt install -y iverilog make python3 python3-matplotlib
+
+# macOS (Homebrew)
+brew install icarus-verilog
+pip3 install matplotlib
 ```
-sudo apt install iverilog          # or: brew install icarus-verilog
+
+### 2. Run the Full Automated Suite (Recommended)
+From inside the `Trapezoid/` directory, run `run_all.py` to compile and execute both the unit testbench and the 104-run density sweep, verify all outputs against a reference matrix multiplication, and generate summary tables and plots:
+```bash
+cd Trapezoid
 python3 run_all.py                 # compile + run everything, save results (~1 min)
-make unit | make sweep             # individual runs
 ```
-`run_all.py` writes `results/<timestamp>/` (and `results/latest/`): `unit_test.log`, `sweep.log`, `sweep.csv`,
-`summary.md` (cycles, speedup vs dense, utilization, best-dataflow tables), `cycles_vs_density.png`.
+`run_all.py` writes outputs to `results/<timestamp>/` and copies the latest run to `results/latest/`:
+- `unit_test.log` – `tb_trip` unit test output (Dense IP + TrIP row checks)
+- `sweep.log` – `tb_top` log for all 104 sweep runs (`PASS`/`FAIL` per configuration)
+- `sweep.csv` – Raw performance counters (`mode,dA,dB,M,K,N,cycles,issued_macs,eff_macs,b_nnz_streamed`)
+- `summary.md` – Formatted Markdown tables for cycles, speedup vs. Dense, multiplier utilization, and best dataflow per `(dA, dB)` density pair
+- `cycles_vs_density.png` – Log-log plot of execution cycles vs. matrix density across all 4 modes
+
+### 3. Run Individual Testbenches via `make` or `iverilog`
+You can also run the unit test or full sweep standalone using `make`:
+```bash
+make unit                          # compile & run tb_trip.sv (Dense + TrIP unit test)
+make sweep                         # compile & run tb_top.sv (4-mode density sweep, writes sweep.csv)
+make                               # run both unit and sweep
+```
+
+Or invoke `iverilog` and `vvp` directly to see full console output without truncation:
+```bash
+# Unit test (trip_row + mfiu)
+iverilog -g2012 -o tb_trip.vvp mfiu.sv trip_row.sv tb_trip.sv
+vvp tb_trip.vvp
+
+# Full top-level sweep (all 4 dataflows)
+iverilog -g2012 -o tb_top.vvp mfiu.sv trip_row.sv trgt_sub.sv trgs_row.sv trapezoid_top.sv tb_top.sv
+vvp tb_top.vvp
+```
+

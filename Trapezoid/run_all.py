@@ -7,7 +7,8 @@ Output: results/<YYYYmmdd_HHMMSS>/ and a copy at results/latest/
           sweep.log          tb_top output (every run, PASS/FAIL)
           sweep.csv          raw numbers: mode,dA,dB,M,K,N,cycles,issued_macs,eff_macs,b_nnz_streamed
           summary.md         cycle / speedup-vs-dense / utilization tables per mode
-          cycles_vs_density.png   (only if matplotlib is installed)
+          fig_*.png          3-D surfaces, heat-maps and paper-style bar charts (needs matplotlib + numpy;
+                             produced by plot_results.py, skipped with a notice if they are missing)
 Exit code is 0 only if every check passed.
 """
 import csv, datetime, shutil, subprocess, sys
@@ -38,7 +39,7 @@ def main():
     ok = True
 
     # ---- 1. unit test (dense + TrIP row) ----
-    print("[1/2] unit test (tb_trip) ...", flush=True)
+    print("[1/3] unit test (tb_trip) ...", flush=True)
     rc, _ = sh(["iverilog", "-g2012", "-o", str(out / "tb_trip.vvp"),
                 str(HERE / "mfiu.sv"), str(HERE / "trip_row.sv"), str(HERE / "tb_trip.sv")], out, out / "compile_unit.log")
     if rc == 0:
@@ -49,7 +50,7 @@ def main():
     print("      ", "PASS" if unit_ok else "FAIL"); ok &= unit_ok
 
     # ---- 2. full sweep (all four dataflows); tb_top writes sweep.csv into cwd ----
-    print("[2/2] density sweep, 4 dataflows (tb_top, ~1 min) ...", flush=True)
+    print("[2/3] density sweep, 4 dataflows (tb_top, ~2 min) ...", flush=True)
     rc, _ = sh(["iverilog", "-g2012", "-o", str(out / "tb_top.vvp"), *src, str(HERE / "tb_top.sv")],
                out, out / "compile_sweep.log")
     if rc == 0:
@@ -62,6 +63,10 @@ def main():
     # ---- 3. summary ----
     csv_path = out / "sweep.csv"
     if csv_path.exists():
+        print("[3/3] plots + summary ...", flush=True)
+        rc, txt = sh([sys.executable, str(HERE / "plot_results.py"), "--csv", str(csv_path), "--out", str(out),
+                      "--nrows", str(NROWS), "--nmul", str(NMUL)], out, out / "plots.log")
+        print("      ", "figures written" if rc == 0 else "plotting skipped/failed (see plots.log): " + txt.strip().splitlines()[-1])
         write_summary(csv_path, out, unit_ok, sweep_ok)
 
     for f in out.glob("*.vvp"):
@@ -131,28 +136,10 @@ def write_summary(csv_path, out, unit_ok, sweep_ok):
               "| mode | cycles | issued MACs | effectual MACs |", "|---|---|---|---|"]
         L += [f"| {r['mode']} | {r['cycles']} | {r['issued_macs']} | {r['eff_macs']} |" for r in ragged]
         L.append("")
+    figs = sorted(p.name for p in out.glob("fig_*.png"))
+    if figs:
+        L += ["## Figures", ""] + [f"![{f}]({f})" for f in figs] + [""]
     (out / "summary.md").write_text("\n".join(L))
-
-    try:
-        import matplotlib
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-        fig, axs = plt.subplots(1, 2, figsize=(11, 4), sharey=True)
-        for ax, (fixed, label) in zip(axs, [("dB", "B density"), ("dA", "A density")]):
-            for m in MODES:
-                if fixed == "dB":      # sweep A at dB = 0.2
-                    ys = [cyc[(m, a, 0.2)] for a in dens]
-                    ax.set_title("cycles vs A density (B density = 0.2)")
-                else:                  # sweep B at dA = 0.2
-                    ys = [cyc[(m, 0.2, b)] for b in dens]
-                    ax.set_title("cycles vs B density (A density = 0.2)")
-                ax.plot(dens, ys, marker="o", label=m)
-            ax.set_xscale("log"); ax.set_yscale("log")
-            ax.set_xlabel("A density" if fixed == "dB" else "B density"); ax.grid(alpha=.3)
-        axs[0].set_ylabel("cycles"); axs[0].legend()
-        fig.tight_layout(); fig.savefig(out / "cycles_vs_density.png", dpi=150)
-    except ImportError:
-        pass
 
 
 if __name__ == "__main__":

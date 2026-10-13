@@ -1,0 +1,6 @@
+gmean normalized performance: {'Dense IP (TPU-like)': 0.131, 'TrIP': 0.903, 'TrGT': 0.731, 'TrGS': 0.645}
+wrote /home/harshk/Desktop/Independent-Study-M-26/Trapezoid/results/20261013_094456/fig_3d_best_dataflow.png
+wrote /home/harshk/Desktop/Independent-Study-M-26/Trapezoid/results/20261013_094456/fig_3d_cycles_surface.png
+wrote /home/harshk/Desktop/Independent-Study-M-26/Trapezoid/results/20261013_094456/fig_heatmaps.png
+wrote /home/harshk/Desktop/Independent-Study-M-26/Trapezoid/results/20261013_094456/fig_perf_by_dataflow.png
+wrote /home/harshk/Desktop/Independent-Study-M-26/Trapezoid/results/20261013_094456/fig_utilization.png

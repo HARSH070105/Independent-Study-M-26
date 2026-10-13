@@ -10,4 +10,4 @@ TRIP
   group@0 rows=4 dense=0 cycles=222 effMACs=2892 errs=0
   group@0 rows=3 dense=0 cycles=226 effMACs=2925 errs=0
 TB_TRIP PASS
-/home/claude/trapezoid_rtl/tb_trip.sv:62: $finish called at 2850000 (1ps)
+/home/harshk/Desktop/Independent-Study-M-26/Trapezoid/tb_trip.sv:62: $finish called at 2850000 (1ps)

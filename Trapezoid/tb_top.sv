@@ -21,8 +21,8 @@ module tb_top;
 
     integer Am [0:MAXM-1][0:MAXK-1], Bm [0:MAXK-1][0:MAXN-1];
     integer i, j, kk, errs, tot_errs = 0, nruns = 0, eff, ref_c, got, fd, a_i, b_i, m_i;
-    integer nzA, nzB;
-    real dens [0:4];
+    integer nzA, nzB, nzC;
+    real dens [0:7];
     string mname [0:3];
 
     task gen(input real dA, input real dB);
@@ -48,13 +48,16 @@ module tb_top;
             start = 1; @(negedge clk); start = 0;
             wait (done); @(negedge clk);
             // check
-            errs = 0; eff = 0;
+            errs = 0; eff = 0; nzA = 0; nzB = 0; nzC = 0;
+            for (i=0;i<M;i=i+1) for (kk=0;kk<K;kk=kk+1) if (Am[i][kk] != 0) nzA = nzA + 1;
+            for (kk=0;kk<K;kk=kk+1) for (j=0;j<N;j=j+1) if (Bm[kk][j] != 0) nzB = nzB + 1;
             for (i=0;i<M;i=i+1) for (j=0;j<N;j=j+1) begin
                 ref_c = 0;
                 for (kk=0;kk<K;kk=kk+1) begin
                     ref_c = ref_c + Am[i][kk]*Bm[kk][j];
                     if (Am[i][kk] != 0 && Bm[kk][j] != 0) eff = eff + 1;
                 end
+                if (ref_c != 0) nzC = nzC + 1;
                 got = $signed(C_flat[(i*MAXN+j)*ACC +: ACC]);
                 if (got !== ref_c) begin errs = errs + 1;
                     if (errs < 4) $display("  MISMATCH mode %0d C[%0d][%0d] got %0d exp %0d", md, i, j, got, ref_c); end
@@ -62,19 +65,19 @@ module tb_top;
             tot_errs = tot_errs + errs; nruns = nruns + 1;
             $display("%-6s dA=%4.2f dB=%4.2f cycles=%6d issuedMACs=%6d effMACs=%6d brows=%5d bnnz=%6d %s",
                      mname[md], dA, dB, cyc_total, cnt_macs, eff, cnt_brows, cnt_bnnz, errs ? "FAIL" : "ok");
-            $fdisplay(fd, "%0s,%f,%f,%0d,%0d,%0d,%0d,%0d,%0d,%0d", mname[md], dA, dB, M, K, N,
-                      cyc_total, cnt_macs, eff, cnt_bnnz);
+            $fdisplay(fd, "%0s,%f,%f,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d", mname[md], dA, dB, M, K, N,
+                      cyc_total, cnt_macs, eff, cnt_bnnz, nzA, nzB, nzC);
         end
     endtask
 
     initial begin
         mname[0]="DENSE"; mname[1]="TRIP"; mname[2]="TRGT"; mname[3]="TRGS";
-        dens[0]=1.0; dens[1]=0.5; dens[2]=0.2; dens[3]=0.1; dens[4]=0.05;
+        dens[0]=1.0; dens[1]=0.7; dens[2]=0.5; dens[3]=0.3; dens[4]=0.2; dens[5]=0.1; dens[6]=0.05; dens[7]=0.03;
         fd = $fopen("sweep.csv", "w");
-        $fdisplay(fd, "mode,dA,dB,M,K,N,cycles,issued_macs,eff_macs,b_nnz_streamed");
+        $fdisplay(fd, "mode,dA,dB,M,K,N,cycles,issued_macs,eff_macs,b_nnz_streamed,nnzA,nnzB,nnzC");
         repeat (3) @(negedge clk);
-        for (a_i = 0; a_i < 5; a_i = a_i + 1)
-            for (b_i = 0; b_i < 5; b_i = b_i + 1) begin
+        for (a_i = 0; a_i < 8; a_i = a_i + 1)
+            for (b_i = 0; b_i < 8; b_i = b_i + 1) begin
                 gen(dens[a_i], dens[b_i]);
                 for (m_i = 0; m_i < 4; m_i = m_i + 1) run(m_i, dens[a_i], dens[b_i]);
             end
