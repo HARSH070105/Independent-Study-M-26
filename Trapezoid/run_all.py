@@ -38,16 +38,36 @@ def main():
     src = [str(HERE / f) for f in SRC]
     ok = True
 
-    # ---- 1. unit test (dense + TrIP row) ----
-    print("[1/3] unit test (tb_trip) ...", flush=True)
-    rc, _ = sh(["iverilog", "-g2012", "-o", str(out / "tb_trip.vvp"),
-                str(HERE / "mfiu.sv"), str(HERE / "trip_row.sv"), str(HERE / "tb_trip.sv")], out, out / "compile_unit.log")
-    if rc == 0:
-        _, txt = sh(["vvp", str(out / "tb_trip.vvp")], out, out / "unit_test.log")
-        unit_ok = "TB_TRIP PASS" in txt
-    else:
-        unit_ok = False
-    print("      ", "PASS" if unit_ok else "FAIL"); ok &= unit_ok
+    # ---- 1. unit tests (individual engines: Dense, TrIP, TrGT, TrGS) ----
+    print("[1/3] unit tests (tb_dense, tb_trip, tb_trgt, tb_trgs) ...", flush=True)
+    unit_specs = [
+        ("DENSE", "tb_dense", ["mfiu.sv", "trip_row.sv", "tb_dense.sv"], "TB_DENSE PASS"),
+        ("TRIP",  "tb_trip",  ["mfiu.sv", "trip_row.sv", "tb_trip.sv"],  "TB_TRIP PASS"),
+        ("TRGT",  "tb_trgt",  ["trgt_sub.sv", "tb_trgt.sv"],             "TB_TRGT PASS"),
+        ("TRGS",  "tb_trgs",  ["trgs_row.sv", "tb_trgs.sv"],             "TB_TRGS PASS"),
+    ]
+    unit_ok = True
+    unit_logs = []
+    compile_logs = []
+    for label, name, files, token in unit_specs:
+        vvp = out / f"{name}.vvp"
+        clog = out / f"compile_{name}.log"
+        ulog = out / f"{name}.log"
+        rc, ctxt = sh(["iverilog", "-g2012", "-o", str(vvp), *[str(HERE / f) for f in files]], out, clog)
+        compile_logs.append(ctxt)
+        if rc == 0:
+            _, utxt = sh(["vvp", str(vvp)], out, ulog)
+            passed = token in utxt
+            unit_logs.append(f"=== {label} ({name}) ===\n" + utxt)
+        else:
+            passed = False
+            unit_logs.append(f"=== {label} ({name}) COMPILE FAILED ===\n" + ctxt)
+        print(f"       {label:5s} ({name}): {'PASS' if passed else 'FAIL'}", flush=True)
+        unit_ok &= passed
+    (out / "compile_unit.log").write_text("".join(compile_logs))
+    (out / "unit_test.log").write_text("\n".join(unit_logs))
+    ok &= unit_ok
+
 
     # ---- 2. full sweep (all four dataflows); tb_top writes sweep.csv into cwd ----
     print("[2/3] density sweep, 4 dataflows (tb_top, ~2 min) ...", flush=True)
