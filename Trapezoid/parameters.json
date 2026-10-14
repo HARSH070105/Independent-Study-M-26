@@ -1,0 +1,37 @@
+{
+  "_comment": "Configuration file for Trapezoid Matrix Multiplication Accelerator Sweep",
+  "matrix": {
+    "M": 16,
+    "K": 32,
+    "N": 32
+  },
+  "hardware": {
+    "MAXM": 64,
+    "MAXK": 64,
+    "MAXN": 64,
+    "NROWS": 4,
+    "NMUL": 16,
+    "KT": 16,
+    "RA": 4,
+    "CB": 4,
+    "W": 16
+  },
+  "sweep": {
+    "densities_A": [1.0, 0.7, 0.5, 0.3, 0.2, 0.1, 0.05, 0.03],
+    "densities_B": [1.0, 0.7, 0.5, 0.3, 0.2, 0.1, 0.05, 0.03],
+    "methods": ["DENSE", "TRIP", "TRGT", "TRGS"],
+    "num_runs_per_point": 1,
+    "seed": 42
+  },
+  "ragged_cases": [
+    {
+      "name": "ragged_prime",
+      "M": 13,
+      "K": 21,
+      "N": 19,
+      "dA": 0.3,
+      "dB": 0.3
+    }
+  ]
+}
+
